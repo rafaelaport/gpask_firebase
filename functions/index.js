@@ -15,6 +15,111 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+//3 - RODAR FUNCTION PARA GERAR MELHORES CASOS (POSTAM)
+exports.melhor_caso = functions.https.onRequest(async (request, response) => {
+
+    let numero_turma = request.body.turma;
+    let alunos_por_grupo = request.body.alunos_por_grupo;
+
+    turma = await db.collection("turmas").doc(String(numero_turma)).get()
+        .then((doc) => {
+            return doc.data();
+        });
+
+    const pesoHardskills = turma.hardskills_atividade;
+    let total_alunos = turma.alunos.length;
+
+    let quantidade_grupos = Math.ceil(total_alunos / alunos_por_grupo);
+
+    for (let i = 0; i < turma.alunos.length; i++) {
+
+        let aluno = turma.alunos[i];
+
+        let grau = (aluno.hardskills.API.nota * pesoHardskills.API.peso)
+            + (aluno.hardskills.REST.nota * pesoHardskills.REST.peso)
+            + (aluno.hardskills.Firebase.nota * pesoHardskills.Firebase.peso);
+
+        aluno.hardskills['grau_hardskills'] = grau;
+    }
+
+    // ordenando do menor para o maior grau
+    let alunosOrdered = turma.alunos.sort(function (alunoA, alunoB) {
+        return alunoA.hardskills.grau_hardskills - alunoB.hardskills.grau_hardskills
+    });
+
+    // agrupando os piores com melhores
+    duplas = [];
+    let posicao_primeiro_aluno = 0;
+    let posicao_ultimo_aluno = alunosOrdered.length - 1;
+    let isCurrent = true;
+
+    for (let i = 0; i < alunosOrdered.length; i++) {
+
+        if (isCurrent) {
+
+            duplas.push(alunosOrdered[posicao_primeiro_aluno]);
+            posicao_primeiro_aluno++;
+            isCurrent = false;
+
+        } else {
+
+            duplas.push(alunosOrdered[posicao_ultimo_aluno]);
+            posicao_ultimo_aluno--;
+            isCurrent = true;
+
+        }
+    }
+
+    grupos = {}
+
+    for (let i = 0; i < quantidade_grupos; i++) {
+        grupos[`grupo_${i + 1}`] = []
+    }
+
+    let grupo_corrente = 1;
+    let alunos_adicionados = 1;
+
+    for (let i = 0; i < duplas.length; i++) {
+
+        if (alunos_adicionados > alunos_por_grupo) {
+
+            grupo_corrente++;
+            alunos_adicionados = 1;
+
+        }
+
+        grupos[`grupo_${grupo_corrente}`].push(duplas[i]);
+        alunos_adicionados++;
+    }
+
+    let media_por_grupo = 0;
+
+    for (let i = 1; i <= quantidade_grupos; i++) {
+
+        let somatorio_grau_hardskills = 0;
+
+        for (let j = 0; j < grupos[`grupo_${i}`].length; j++) {
+            
+            somatorio_grau_hardskills += grupos[`grupo_${i}`][j].hardskills.grau_hardskills;
+        }
+
+        media_por_grupo = somatorio_grau_hardskills / grupos[`grupo_${i}`].length
+
+        //aluno.hardskills['grau_hardskills'] = grau;
+        //grupos[`grupo_${i}`].push(['media_por_grupo'] = media_por_grupo);
+        //grupos[`grupo_${i}`]['media_por_grupo'] = media_por_grupo;
+    }
+
+    db.collection('turmas').doc(String(numero_turma))
+    .collection('melhores_casos').doc().set({
+        grupos//,
+        //hardskills_atividade: turma.hardskills_atividade
+    });
+
+    //response.json(grupos);
+
+});
+
 //2 - RODAR FUNCTION PARA GERAR PIORES CASOS (POSTMAN)
 exports.random_pior_caso = functions.https.onRequest(async (request, response) => {
 
