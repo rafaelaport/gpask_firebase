@@ -11,9 +11,162 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-function getRandomInt(min, max) {
+/*function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+}*/
+
+// 4 - RODAR FUNCTION PARA GERAR ANALYZER
+exports.analyzer = functions.https.onRequest(async (request, response) => {
+
+    let numero_turma = request.body.turma;
+
+    grupos = await db.collection("turmas").doc(String(numero_turma))
+        .collection("melhor_caso").doc(String(numero_turma) + '_melhor_caso').get()
+        .then((doc) => {
+            return doc.data();
+        });
+
+    //------
+    // Comparar a proporção interna do saber baseado no peso das hardskills na atividade
+    // Mensurar Distancia entre os grupos
+    // Validar distribuição complementar das softskills (quantidade maior)
+
+    let min_deficit_distribuicao = 100;
+    let max_deficit_distribuicao = 0;
+
+    let min_softskill = 100;
+    let max_softskill = 0;
+
+    for (let g in grupos.grupos) {
+
+        let grupo = grupos.grupos[g];
+        let total_integrantes = grupo.length;
+        let softskills = [];
+
+        let conhecimento_grupo = {
+            hardskills: {},
+            total_conhecimento_hardskills: 0,
+        }
+
+        for (let a in grupo) {
+
+            let aluno = grupo[a];
+
+            for (let s in aluno.softskills) {
+                let softskill = aluno.softskills[s];
+                if (!softskills.includes(softskill)) {
+
+                    softskills.push(softskill);
+                }
+            }
+
+            for (let h in aluno.hardskills) {
+
+                let hardskill = aluno.hardskills[h];
+
+                conhecimento_grupo.total_conhecimento_hardskills += hardskill.nota;
+
+                if (!conhecimento_grupo.hardskills.hasOwnProperty(h)) {
+                    conhecimento_grupo.hardskills[h] = {
+                        total_pontos: hardskill.nota
+                    }
+                } else {
+                    conhecimento_grupo.hardskills[h].total_pontos += hardskill.nota
+                }
+
+            }
+
+        }
+
+        let deficit_distribuicao = 0;
+
+        for (let h in conhecimento_grupo.hardskills) {
+
+            let hardskill = conhecimento_grupo.hardskills[h]
+
+            conhecimento_grupo.hardskills[h].percentual = (hardskill.total_pontos * 100) / conhecimento_grupo.total_conhecimento_hardskills
+
+            if (conhecimento_grupo.hardskills[h].percentual < grupos.hardskills_atividade[h].peso) {
+
+                let deficit = grupos.hardskills_atividade[h].peso - conhecimento_grupo.hardskills[h].percentual;
+                deficit_distribuicao += deficit;
+
+            } else {
+
+            }
+
+        }
+
+        if (deficit_distribuicao < min_deficit_distribuicao) {
+            min_deficit_distribuicao = deficit_distribuicao
+        }
+
+        if (deficit_distribuicao > max_deficit_distribuicao) {
+            max_deficit_distribuicao = deficit_distribuicao
+        }
+
+        conhecimento_grupo['deficit_hardskills_absoluto'] = deficit_distribuicao;
+
+        conhecimento_grupo['media_softskills'] = softskills.length / total_integrantes
+
+        if (conhecimento_grupo['media_softskills'] < min_softskill) {
+            min_softskill = conhecimento_grupo['media_softskills']
+        }
+
+        if (conhecimento_grupo['media_softskills'] > max_softskill) {
+            max_softskill = conhecimento_grupo['media_softskills']
+        }
+
+        grupos.grupos[g] = {
+            conhecimento_grupo
+        }
+
+    }
+
+    let gap_softskill = 0;
+
+    for (let cg in grupos.grupos) {
+        let grupo = grupos.grupos[cg].conhecimento_grupo
+
+        let gap = (max_softskill - grupo.media_softskills) / (max_softskill - min_softskill)
+
+        if (gap > 0 && gap < 1) {
+            gap_softskill += gap
+        }
+
+    }
+
+    let gap_hardskill = 0;
+
+    for (let cg in grupos.grupos) {
+        let grupo = grupos.grupos[cg].conhecimento_grupo
+
+        let gap = (min_deficit_distribuicao - grupo.deficit_hardskills_absoluto) / (min_deficit_distribuicao - max_deficit_distribuicao)
+
+        grupos.grupos[cg].conhecimento_grupo['deficit_hardskills_relativo'] = grupo.deficit_hardskills_absoluto * gap
+        if (gap > 0 && gap < 1) {
+            gap_hardskill += gap
+        }
+
+    }
+
+    let analise = {
+        grupos: grupos.grupos,
+        gap_hardskill: gap_hardskill,
+        gap_softskill: gap_softskill,
+        acuracia: 100 - (9 * gap_hardskill) + (1 * gap_softskill)
+    }
+
+    db.collection('turmas').doc(String(numero_turma))
+        .collection('melhor_caso').doc(String(numero_turma) + '_melhor_caso')
+        .collection('analise').doc(String(numero_turma) + '_analise').set({
+            analise
+        });
+
+
+    response.json("Análise finalizada!");
+
+});
 
 //3 - RODAR FUNCTION PARA GERAR MELHORES CASOS (POSTAM)
 exports.melhor_caso = functions.https.onRequest(async (request, response) => {
@@ -39,7 +192,7 @@ exports.melhor_caso = functions.https.onRequest(async (request, response) => {
             + (aluno.hardskills.REST.nota * pesoHardskills.REST.peso)
             + (aluno.hardskills.Firebase.nota * pesoHardskills.Firebase.peso);
 
-        aluno.hardskills['grau_hardskills'] = grau;
+        aluno['grau_hardskills'] = grau;
     }
 
     // ordenando do menor para o maior grau
@@ -92,36 +245,18 @@ exports.melhor_caso = functions.https.onRequest(async (request, response) => {
         alunos_adicionados++;
     }
 
-    let media_por_grupo = 0;
-
-    for (let i = 1; i <= quantidade_grupos; i++) {
-
-        let somatorio_grau_hardskills = 0;
-
-        for (let j = 0; j < grupos[`grupo_${i}`].length; j++) {
-            
-            somatorio_grau_hardskills += grupos[`grupo_${i}`][j].hardskills.grau_hardskills;
-        }
-
-        media_por_grupo = somatorio_grau_hardskills / grupos[`grupo_${i}`].length
-
-        //aluno.hardskills['grau_hardskills'] = grau;
-        //grupos[`grupo_${i}`].push(['media_por_grupo'] = media_por_grupo);
-        //grupos[`grupo_${i}`]['media_por_grupo'] = media_por_grupo;
-    }
-
     db.collection('turmas').doc(String(numero_turma))
-    .collection('melhores_casos').doc().set({
-        grupos//,
-        //hardskills_atividade: turma.hardskills_atividade
-    });
+        .collection('melhor_caso').doc(String(numero_turma) + '_melhor_caso').set({
+            grupos,
+            hardskills_atividade: turma.hardskills_atividade
+        });
 
-    //response.json(grupos);
+    response.json("Melhor caso finalizado!");
 
 });
 
 //2 - RODAR FUNCTION PARA GERAR PIORES CASOS (POSTMAN)
-exports.random_pior_caso = functions.https.onRequest(async (request, response) => {
+/*exports.random_pior_caso = functions.https.onRequest(async (request, response) => {
 
     let numero_turma = request.body.turma;
     let quantidade = request.body.quantidade;
@@ -168,7 +303,7 @@ exports.random_pior_caso = functions.https.onRequest(async (request, response) =
     }
 
     response.json('agrupamentos aleatórios realizados')
-});
+});*/
 
 //1 - RODAR FUNCTION PARA GERAR MOCK DE TURMAS 
 exports.mock = functions.https.onRequest((request, response) => {
