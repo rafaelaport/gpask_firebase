@@ -1,12 +1,11 @@
-module.exports = () => {
-    const quantidade_alunos = 9;
+module.exports = (numero_turma, quantidade_alunos) => {
   
     const calcula_outliers = (percentual) => {
       return Math.round((quantidade_alunos * percentual) / 100);
     }
   
     return {
-      turma: 152,
+      turma: numero_turma,
       quantidade_alunos: quantidade_alunos,
       softskills: [
         'Resolução de Problemas',

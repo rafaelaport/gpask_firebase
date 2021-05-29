@@ -1,7 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const Chance = require('chance');
-const params = require('./config/parametros.js')();
 
 var serviceAccount = require("../gpask-1ab93-firebase-adminsdk-sok1f-7f786cc583.json");
 
@@ -11,14 +10,10 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-/*function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}*/
-
-// 4 - RODAR FUNCTION PARA GERAR ANALYZER
+// 3 - RODAR FUNCTION PARA GERAR ANALYZER
 exports.analyzer = functions.https.onRequest(async (request, response) => {
 
-    let numero_turma = request.body.turma;
+    let numero_turma = request.query.turma;
 
     grupos = await db.collection("turmas").doc(String(numero_turma))
         .collection("melhor_caso").doc(String(numero_turma) + '_melhor_caso').get()
@@ -163,16 +158,15 @@ exports.analyzer = functions.https.onRequest(async (request, response) => {
             analise
         });
 
-
-    response.json("Análise finalizada!");
+    response.json("Análise finalizada com sucesso!");
 
 });
 
-//3 - RODAR FUNCTION PARA GERAR MELHORES CASOS (POSTAM)
+//2 - RODAR FUNCTION PARA GERAR MELHORES CASOS (POSTAM)
 exports.melhor_caso = functions.https.onRequest(async (request, response) => {
 
-    let numero_turma = request.body.turma;
-    let alunos_por_grupo = request.body.alunos_por_grupo;
+    let numero_turma = request.query.turma;
+    let alunos_por_grupo = request.query.alunos_por_grupo;
 
     turma = await db.collection("turmas").doc(String(numero_turma)).get()
         .then((doc) => {
@@ -251,64 +245,19 @@ exports.melhor_caso = functions.https.onRequest(async (request, response) => {
             hardskills_atividade: turma.hardskills_atividade
         });
 
-    response.json("Melhor caso finalizado!");
+    response.json("Melhor Caso finalizado com sucesso!");
 
 });
-
-//2 - RODAR FUNCTION PARA GERAR PIORES CASOS (POSTMAN)
-/*exports.random_pior_caso = functions.https.onRequest(async (request, response) => {
-
-    let numero_turma = request.body.turma;
-    let quantidade = request.body.quantidade;
-    let quantidade_turmas = request.body.quantidade_turmas;
-
-    turma = await db.collection("turmas").doc(String(numero_turma)).get()
-        .then((doc) => {
-            return doc.data();
-        });
-
-    let total_alunos = turma.alunos.length;
-    let quantidade_grupos = total_alunos / quantidade;
-
-    for (let j = 0; j < quantidade_turmas; j++) {
-
-        grupos = {}
-
-        for (let i = 0; i < quantidade_grupos; i++) {
-            grupos[`grupo_${i + 1}`] = []
-        }
-
-        let grupo_corrente = 1;
-
-        while (turma.alunos.length > 0) {
-
-            if (grupo_corrente > Math.ceil(quantidade_grupos)) grupo_corrente = 1;
-
-            let posicao = getRandomInt(1, turma.alunos.length) - 1
-
-            let aluno = turma.alunos[posicao]
-
-            grupos[`grupo_${grupo_corrente}`].push(aluno)
-
-            turma.alunos.splice(posicao, 1);
-            grupo_corrente += 1;
-
-        }
-
-        db.collection('turmas').doc(String(numero_turma))
-            .collection('piores_casos').doc().set({
-                grupos,
-                hardskills_atividade: turma.hardskills_atividade
-            });
-    }
-
-    response.json('agrupamentos aleatórios realizados')
-});*/
 
 //1 - RODAR FUNCTION PARA GERAR MOCK DE TURMAS 
 exports.mock = functions.https.onRequest((request, response) => {
 
     const chance = new Chance();
+
+    let numero_turma = request.query.turma;
+    let quantidade_alunos = request.query.quantidade_alunos;
+    const params = require('./config/parametros.js')(numero_turma, quantidade_alunos);
+
     const { turma, hardskills_atividade } = params;
 
     require('./libs/ClassroomGenerate.js')(chance)
@@ -322,50 +271,8 @@ exports.mock = functions.https.onRequest((request, response) => {
 
     }, { merge: true }).then(function (doc) {
 
-        response.json(doc);
+        response.json("Mock da Turma gerado com sucesso!");
 
     });
-
 });
 
-
-
-
-/*exports.helloWorld = functions.https.onRequest((request, response) => {
-
-    db.collection('professores').doc().set({
-        nome: 'Celso Neskier',
-        titulacao: 'Doutor',
-        idade: 35
-    }, { merge: true }).then(function (doc) {
-        response.send(doc);
-    });
-
-});
-
-exports.trigger = functions.firestore.document('professores/{userId}')
-    .onWrite((change, context) => {
-        console.log(change.after.data());
-
-        const data = change.after.data();
-        const previous = change.before.data();
-
-        if (previous) {
-            if (data.nome == previous.nome) {
-                return null;
-            }
-        }
-
-        let count = data.alteracao_nome;
-
-        if (!count) {
-            count = 0;
-        }
-
-        return change.after.ref.set({
-            alteracao_nome: count + 1
-        }, { merge: true }).then(function () {
-            console.log('alterei');
-        });
-
-    });*/
