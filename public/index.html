@@ -1,52 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="http://code.jquery.com/jquery-2.0.3.min.js" type="text/javascript"></script>
+
+  <title>GPASK</title>
+
+  <style>
+    * {
+      margin: 0;
+    }
+    header{
+      background: rgb(238, 237, 237);
+      padding: 1.5rem 2.5rem;
+    }
+    main {
+      display: flex;
+    }
+
+    section {
+      margin: 0 auto;
+      padding-top: 1rem;
+    }
+
+    fieldset{
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .row {
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      background: #069cc2;
+      border-radius: 6px;
+      padding: 10px;
+      cursor: pointer;
+      color: #fff;
+      border: none;
+      font-size: 1rem;
+    }
+  </style>
 
 </head>
 
 <body>
+  <header>
+    <div>
+      <h1>Metodologia GPASK</h1>
+    </div>
+  </header>
+  <main>
+    <section>
+      <div class="form-mock">
+        <form action="">
+          <fieldset>
+            <legend>Gerar Mock da Turma</legend>
+            <div class="row">
+              <label for="turma_mock">Número da Turma</label>
+              <input type="number" name="turma_mock" id="turma_mock" class="input-class">
+            </div>
+            <div class="row">
+              <label for="quantidade_alunos">Quantidade de alunos</label>
+              <input type="number" name="quantidade_alunos" id="quantidade_alunos">
+            </div>
+            <button type="button" onclick="getInputValueMock();">Gerar</button>
+          </fieldset>
+        </form>
+      </div>
+      <div class="form-melhor-caso">
+        <form action="">
+          <fieldset>
+            <legend>Gerar melhor caso da turma</legend>
+            <div class="row">
+              <label for="turma_melhor_caso">
+                Número da Turma
+              </label>
+              <input type="number"
+                name="turma_melhor_caso"
+                id="turma_melhor_caso"
+                class="input-class"
+                min="0"
+               required>
+            </div>
+            <div class="row">
+              <label for="alunos_por_grupo">
+                Quantidade de alunos por grupo
+              </label>
+              <input
+               type="number" 
+               name="alunos_por_grupo" 
+               id="alunos_por_grupo"
+               class="input-qtd-alunos">
+            </div>
+            <button type="button" onclick="getInputValueMelhorCaso();">Gerar</button>
+          </fieldset>
+        </form>
+      </div>
+      <div class="form-analise">
+        <form action="">
+          <fieldset>
+              <legend>Gerar Análise do melhor caso da turma</legend>
+              <div class="row">
+                <label for="turma_analise">Número da Turma</label>
+                <input
+                  type="number"
+                  name="turma_analise"
+                  id="turma_analise"
+                  class="input-class"
+                >
+              </div>
+              <button type="button" onclick="getInputValueAnalise();">Gerar</button>
+            </fieldset>
+          </form>
+      </div>
+    </section>
+  </main>
+<script>
+  $(document).ready(() => {
+      $('.input-class').on('input', (event) => {
+        handleMaxLengthClass(event);
+      });
+    });
 
-  <!--MOCK-->
-  <p>Gerar Mock da Turma:</p>
-
-  <input type="text" name="turma_mock" id="turma_mock" placeholder="Número da Turma">
-  <input type="text" name="quantidade_alunos" id="quantidade_alunos" placeholder="Quantidade de alunos">
-
-  <button type="button" onclick="getInputValueMock();"
-    style="background: #069cc2; border-radius: 6px; padding: 15px; cursor: pointer; color: #fff; border: none; font-size: 16px;">
-    Gerar
-  </button>
-  <!--MOCK-->
-
-  <!--MELHOR CASO-->
-  <p>Gerar Melhor Caso da Turma:</p>
-
-  <input type="text" name="turma_melhor_caso" id="turma_melhor_caso" placeholder="Número da Turma">
-  <input type="text" name="alunos_por_grupo" id="alunos_por_grupo" placeholder="Quantidade de alunos por grupo">
-
-  <button type="button" onclick="getInputValueMelhorCaso();"
-    style="background: #069cc2; border-radius: 6px; padding: 15px; cursor: pointer; color: #fff; border: none; font-size: 16px;">
-    Gerar
-  </button>
-  <!--MELHOR CASO-->
-
-  <!--ANALISE-->
-  <p>Gerar Análise do Melhor Caso da Turma:</p>
-
-  <input type="text" name="turma_analise" id="turma_analise" placeholder="Número da Turma">
-
-  <button type="button" onclick="getInputValueAnalise();"
-    style="background: #069cc2; border-radius: 6px; padding: 15px; cursor: pointer; color: #fff; border: none; font-size: 16px;">
-    Gerar
-  </button>
-  <!--ANALISE-->
-
-  <script>
-
-    function getInputValueAnalise() {
+  function handleMaxLengthClass(event) {
+    console.log(event.target.value.length);
+    let valueLength = event.target.value.length;
+    let inputValue = event.target.value;
+    if (valueLength > 3) {
+      inputValue = inputValue.slice(0, 3);
+    }
+    $(`#${event.target.id}`).val(inputValue);
+  }
+  function getInputValueAnalise() {
 
       let turma = document.getElementById("turma_analise").value;
 
@@ -66,9 +158,7 @@
       });
 
     }
-
-
-    function getInputValueMelhorCaso() {
+  function getInputValueMelhorCaso() {
 
       let turma = document.getElementById("turma_melhor_caso").value;
       let alunos_por_grupo = document.getElementById("alunos_por_grupo").value;
@@ -90,9 +180,7 @@
       });
 
     }
-
-
-    function getInputValueMock() {
+  function getInputValueMock() {
 
       let turma = document.getElementById("turma_mock").value;
       let quantidade_alunos = document.getElementById("quantidade_alunos").value;
@@ -114,8 +202,7 @@
       });
 
     }
-
-    /*document.addEventListener('DOMContentLoaded', function () {
+  /*document.addEventListener('DOMContentLoaded', function () {
       const loadEl = document.querySelector('#load');
 
       try {
@@ -159,10 +246,6 @@
         loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
       }
     });*/
-  </script>
-
-  <!--<p id="turma"></p>-->
-
+</script>
 </body>
-
 </html>
