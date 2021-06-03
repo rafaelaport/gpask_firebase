@@ -14,10 +14,12 @@
     * {
       margin: 0;
     }
-    header{
+
+    header {
       background: rgb(238, 237, 237);
       padding: 1.5rem 2.5rem;
     }
+
     main {
       display: flex;
     }
@@ -27,7 +29,7 @@
       padding-top: 1rem;
     }
 
-    fieldset{
+    fieldset {
       border-radius: 6px;
       margin-bottom: 1rem;
     }
@@ -47,7 +49,6 @@
       font-size: 1rem;
     }
   </style>
-
 </head>
 
 <body>
@@ -64,11 +65,11 @@
             <legend>Gerar Mock da Turma</legend>
             <div class="row">
               <label for="turma_mock">Número da Turma</label>
-              <input type="number" name="turma_mock" id="turma_mock" class="input-class">
+              <input type="number" name="turma_mock" id="turma_mock" class="input-class" min="0" required>
             </div>
             <div class="row">
               <label for="quantidade_alunos">Quantidade de alunos</label>
-              <input type="number" name="quantidade_alunos" id="quantidade_alunos">
+              <input type="number" name="quantidade_alunos" id="quantidade_alunos" min="0" required>
             </div>
             <button type="button" onclick="getInputValueMock();">Gerar</button>
           </fieldset>
@@ -82,22 +83,14 @@
               <label for="turma_melhor_caso">
                 Número da Turma
               </label>
-              <input type="number"
-                name="turma_melhor_caso"
-                id="turma_melhor_caso"
-                class="input-class"
-                min="0"
-               required>
+              <input type="number" name="turma_melhor_caso" id="turma_melhor_caso" class="input-class" min="0" required>
             </div>
             <div class="row">
               <label for="alunos_por_grupo">
                 Quantidade de alunos por grupo
               </label>
-              <input
-               type="number" 
-               name="alunos_por_grupo" 
-               id="alunos_por_grupo"
-               class="input-qtd-alunos">
+              <input type="number" name="alunos_por_grupo" id="alunos_por_grupo" class="input-qtd-alunos" min="0"
+                required>
             </div>
             <button type="button" onclick="getInputValueMelhorCaso();">Gerar</button>
           </fieldset>
@@ -106,39 +99,35 @@
       <div class="form-analise">
         <form action="">
           <fieldset>
-              <legend>Gerar Análise do melhor caso da turma</legend>
-              <div class="row">
-                <label for="turma_analise">Número da Turma</label>
-                <input
-                  type="number"
-                  name="turma_analise"
-                  id="turma_analise"
-                  class="input-class"
-                >
-              </div>
-              <button type="button" onclick="getInputValueAnalise();">Gerar</button>
-            </fieldset>
-          </form>
+            <legend>Gerar Análise do melhor caso da turma</legend>
+            <div class="row">
+              <label for="turma_analise">Número da Turma</label>
+              <input type="number" name="turma_analise" id="turma_analise" class="input-class" min="0" required>
+            </div>
+            <button type="button" onclick="getInputValueAnalise();">Gerar</button>
+          </fieldset>
+        </form>
       </div>
     </section>
   </main>
-<script>
-  $(document).ready(() => {
+  <script>
+    $(document).ready(() => {
       $('.input-class').on('input', (event) => {
         handleMaxLengthClass(event);
       });
     });
 
-  function handleMaxLengthClass(event) {
-    console.log(event.target.value.length);
-    let valueLength = event.target.value.length;
-    let inputValue = event.target.value;
-    if (valueLength > 3) {
-      inputValue = inputValue.slice(0, 3);
+    function handleMaxLengthClass(event) {
+      console.log(event.target.value.length);
+      let valueLength = event.target.value.length;
+      let inputValue = event.target.value;
+      if (valueLength > 3) {
+        inputValue = inputValue.slice(0, 3);
+      }
+      $(`#${event.target.id}`).val(inputValue);
     }
-    $(`#${event.target.id}`).val(inputValue);
-  }
-  function getInputValueAnalise() {
+
+    function getInputValueAnalise() {
 
       let turma = document.getElementById("turma_analise").value;
 
@@ -158,7 +147,8 @@
       });
 
     }
-  function getInputValueMelhorCaso() {
+
+    function getInputValueMelhorCaso() {
 
       let turma = document.getElementById("turma_melhor_caso").value;
       let alunos_por_grupo = document.getElementById("alunos_por_grupo").value;
@@ -180,7 +170,8 @@
       });
 
     }
-  function getInputValueMock() {
+
+    function getInputValueMock() {
 
       let turma = document.getElementById("turma_mock").value;
       let quantidade_alunos = document.getElementById("quantidade_alunos").value;
@@ -202,50 +193,51 @@
       });
 
     }
-  /*document.addEventListener('DOMContentLoaded', function () {
-      const loadEl = document.querySelector('#load');
+    /*document.addEventListener('DOMContentLoaded', function () {
+        const loadEl = document.querySelector('#load');
 
-      try {
-        let app = firebase.app();
+        try {
+          let app = firebase.app();
 
-        firebase.firestore().collection('professores').doc().set({
-          nome: 'Manuel Martins',
-          titulacao: 'Doutor',
-          idade: 35
-        });
-
-        firebase.firestore().collection('professores').onSnapshot((snapshot) => {
-
-          snapshot.docChanges().forEach((change) => {
-            if(change.type == 'added'){
-              console.log('novo item', change.doc.id);
-
-              document.getElementById("conteudo").innerHTML += "<p>" + change.doc.id + "<p>";
-            }
+          firebase.firestore().collection('professores').doc().set({
+            nome: 'Manuel Martins',
+            titulacao: 'Doutor',
+            idade: 35
           });
 
-        });
+          firebase.firestore().collection('professores').onSnapshot((snapshot) => {
+
+            snapshot.docChanges().forEach((change) => {
+              if(change.type == 'added'){
+                console.log('novo item', change.doc.id);
+
+                document.getElementById("conteudo").innerHTML += "<p>" + change.doc.id + "<p>";
+              }
+            });
+
+          });
 
 
 
 
-        let features = [
-          'auth',
-          'database',
-          'firestore',
-          'functions',
-          'messaging',
-          'storage',
-          'analytics',
-          'remoteConfig',
-          'performance',
-        ].filter(feature => typeof app[feature] === 'function');
-        loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-      } catch (e) {
-        console.error(e);
-        loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-      }
-    });*/
-</script>
+          let features = [
+            'auth',
+            'database',
+            'firestore',
+            'functions',
+            'messaging',
+            'storage',
+            'analytics',
+            'remoteConfig',
+            'performance',
+          ].filter(feature => typeof app[feature] === 'function');
+          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+        } catch (e) {
+          console.error(e);
+          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        }
+      });*/
+  </script>
 </body>
+
 </html>
