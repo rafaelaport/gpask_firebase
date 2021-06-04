@@ -3,6 +3,7 @@ const admin = require("firebase-admin");
 const Chance = require('chance');
 
 var serviceAccount = require("../gpask-1ab93-firebase-adminsdk-sok1f-7f786cc583.json");
+const { INGRESS_SETTINGS_OPTIONS } = require("firebase-functions");
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -176,8 +177,6 @@ exports.melhor_caso = functions.https.onRequest(async (request, response) => {
     const pesoHardskills = turma.hardskills_atividade;
     let total_alunos = turma.alunos.length;
 
-    let quantidade_grupos = Math.ceil(total_alunos / alunos_por_grupo);
-
     for (let i = 0; i < turma.alunos.length; i++) {
 
         let aluno = turma.alunos[i];
@@ -190,41 +189,49 @@ exports.melhor_caso = functions.https.onRequest(async (request, response) => {
     }
 
     // ordenando do menor para o maior grau
-    let alunosOrdered = turma.alunos.sort(function (alunoA, alunoB) {
+    let alunos_ordenados = turma.alunos.sort(function (alunoA, alunoB) {
         return alunoA.hardskills.grau_hardskills - alunoB.hardskills.grau_hardskills
     });
 
     // agrupando os piores com melhores
     duplas = [];
     let posicao_primeiro_aluno = 0;
-    let posicao_ultimo_aluno = alunosOrdered.length - 1;
+    let posicao_ultimo_aluno = alunos_ordenados.length - 1;
     let isCurrent = true;
 
-    for (let i = 0; i < alunosOrdered.length; i++) {
+    for (let i = 0; i < alunos_ordenados.length; i++) {
 
         if (isCurrent) {
 
-            duplas.push(alunosOrdered[posicao_primeiro_aluno]);
+            duplas.push(alunos_ordenados[posicao_primeiro_aluno]);
             posicao_primeiro_aluno++;
             isCurrent = false;
 
         } else {
 
-            duplas.push(alunosOrdered[posicao_ultimo_aluno]);
+            duplas.push(alunos_ordenados[posicao_ultimo_aluno]);
             posicao_ultimo_aluno--;
             isCurrent = true;
 
         }
     }
 
-    grupos = {}
+    let sobra_alunos = total_alunos % alunos_por_grupo;
+    let metade_grupo = alunos_por_grupo / 2;
+
+    let quantidade_grupos = sobra_alunos >= metade_grupo ? Math.ceil(total_alunos / alunos_por_grupo)
+        : Math.trunc(total_alunos / alunos_por_grupo);
+
+    array_grupos = []
 
     for (let i = 0; i < quantidade_grupos; i++) {
-        grupos[`grupo_${i + 1}`] = []
+        array_grupos[i] = []
+        array_grupos[i]['grau_total_grupo'] = 0;
     }
 
-    let grupo_corrente = 1;
+    let grupo_corrente = 0;
     let alunos_adicionados = 1;
+    let alunos_restantes = []
 
     for (let i = 0; i < duplas.length; i++) {
 
@@ -232,11 +239,50 @@ exports.melhor_caso = functions.https.onRequest(async (request, response) => {
 
             grupo_corrente++;
             alunos_adicionados = 1;
-
         }
 
-        grupos[`grupo_${grupo_corrente}`].push(duplas[i]);
-        alunos_adicionados++;
+        if (grupo_corrente < quantidade_grupos) {
+
+            array_grupos[grupo_corrente].push(duplas[i]);
+            array_grupos[grupo_corrente].grau_total_grupo += duplas[i].grau_hardskills;
+            alunos_adicionados++;
+
+        }
+        else {
+
+            alunos_restantes.push(duplas[i])
+        }
+    }
+
+    //se a sobre de alunos for menor que a metade da quantidade de alunos por grupo, redistribui os alunos
+    if (sobra_alunos < metade_grupo) {
+
+        // ordenando grupos do maior para o menor grau
+        array_grupos.sort(function (grupoA, grupoB) {
+            return grupoB.grau_total_grupo - grupoA.grau_total_grupo
+        });
+
+        //ordenando alunos restantes do menor para o maior grau 
+        let alunos_restantes_ordenados = alunos_restantes.sort(function (alunoA, alunoB) {
+            return alunoA.grau_total_grupo - alunoB.grau_total_grupo
+        });
+
+        //redistribuindo o aluno de menor grau para o grupo de maior grau
+        for(let i = 0; i < alunos_restantes_ordenados.length; i++){
+
+            array_grupos[i].push(alunos_restantes_ordenados[i]);
+
+        }
+    }
+
+    //nomeando os grupos para inserir no firestore
+    grupos = {}
+    index = 0;
+
+    for (let i = 1; i <= quantidade_grupos; i++) {
+
+        grupos[`grupo_${i}`] = array_grupos[index]
+        index++;
     }
 
     db.collection('turmas').doc(String(numero_turma))
