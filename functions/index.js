@@ -163,7 +163,7 @@ exports.analyzer = functions.https.onRequest(async (request, response) => {
 
 });
 
-//2 - RODAR FUNCTION PARA GERAR MELHORES CASOS (POSTAM)
+//2 - RODAR FUNCTION PARA GERAR MELHORES CASOS 
 exports.melhor_caso = functions.https.onRequest(async (request, response) => {
 
     let numero_turma = request.query.turma;
